@@ -2,10 +2,13 @@
 
 struct server_data {
   int connections;
+  pthread_cond_t *cond;
+  int condition;
   int serverSocket;
   sigset_t *oldmask;
   thread_t **threads;
   pthread_mutex_t *threadMutex;
+  pthread_mutex_t *timedMutex;
   client_t **clients;
   pthread_mutex_t *clientMutex;
 };

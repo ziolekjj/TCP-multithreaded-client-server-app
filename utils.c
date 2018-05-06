@@ -2,7 +2,7 @@
 
 volatile sig_atomic_t exit_flag = 0;
 
-void usage(char *fileName) {
+void usagec(char *fileName) {
   fprintf(stderr, "Usage: %s port groupSize\n", fileName);
   exit(EXIT_FAILURE);
 }
@@ -32,7 +32,7 @@ void set_signal_handlers(sigset_t *mask, sigset_t *oldmask) {
 }
 
 void parse_arguments(int argc, char **argv, int16_t *port) {
-  if (argc != 2) usage(argv[0]);
+  if (argc != 2) usagec(argv[0]);
   *port = atoi(argv[1]);
 }
 
@@ -92,9 +92,9 @@ void remove_all_server_data(struct server_data *server_data) {
   if (close(server_data->serverSocket) < 0)
     ERR("close");
 
-  join_threads(*(server_data->threads), server_data->threadMutex);
+  // join_threads(*(server_data->threads), server_data->threadMutex);
   remove_all_threads(server_data->threads);
-
+  
   if (pthread_mutex_destroy(server_data->threadMutex) != 0)
     ERR("pthread_mutex_destroy");
 

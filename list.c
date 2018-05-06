@@ -79,65 +79,45 @@ void join_threads(thread_t *head, pthread_mutex_t *listMutex) {
 }
 
 
-void add_client(client_t **head, int clientSocket, struct sockaddr_in *clientAddr, socklen_t *clientAddrLen)
-{
-    client_t *newNode = malloc(sizeof(client_t));
-    if (newNode == NULL)
-        ERR("malloc");
+void add_client(client_t **head, int clientSocket, struct sockaddr_in *clientAddr, socklen_t *clientAddrLen) {
+  client_t *newNode = malloc(sizeof(client_t));
+  if (newNode == NULL)
+    ERR("malloc");
 
-    newNode->clientSocket = clientSocket;
-    newNode->clientAddr = *clientAddr;
-    newNode->clientAddrLen = *clientAddrLen;
-    newNode->next = *head;
-    *head = newNode;
+  newNode->clientSocket = clientSocket;
+  newNode->clientAddr = *clientAddr;
+  newNode->clientAddrLen = *clientAddrLen;
+  newNode->next = *head;
+  *head = newNode;
 }
 
-client_t *pop_client(client_t **head)
-{
-    if (*head == NULL)
-        return NULL;
-
-    if ((*head)->next == NULL)
-    {
-        client_t *nodeToReturn = *head;
-        *head = NULL;
-        return nodeToReturn;
-    }
-
-    client_t *tail = *head,
-        *prev = NULL;
-    while (tail->next != NULL)
-    {
-        prev = tail;
-        tail = tail->next;
-    }
-
-    prev->next = NULL;
-    return tail;
+client_t *pop_client(client_t **head) {
+  if (*head == NULL)
+    return NULL;
+  client_t *nodeToReturn = *head;
+  *head = (*head)->next;
+  return nodeToReturn;
 }
 
-client_t *block_pop_client(client_t **head, pthread_mutex_t *mutex)
-{
-    if (pthread_mutex_lock(mutex) != 0)
-        ERR("pthread_mutex_lock");
+client_t *block_pop_client(client_t **head, pthread_mutex_t *mutex) {
+  if (pthread_mutex_lock(mutex) != 0)
+    ERR("pthread_mutex_lock");
 
-    client_t *client = pop_client(head);
+  client_t *client = pop_client(head);
 
-    if (pthread_mutex_unlock(mutex) != 0)
-        ERR("pthread_mutex_unlock");
+  if (pthread_mutex_unlock(mutex) != 0)
+    ERR("pthread_mutex_unlock");
 
-    return client;
+  return client;
 }
 
-void remove_all_clients(client_t **head)
-{
-    while (*head != NULL)
-    {
-        client_t *next = (*head)->next;
-        // if (TEMP_FAILURE_RETRY(close((*head)->clientSocket)) < 0)
-        if (close((*head)->clientSocket) < 0)
-            ERR("close");
-        free(*head);
-        *head = next;
-    }
+void remove_all_clients(client_t **head) {
+  while (*head != NULL) {
+    client_t *next = (*head)->next;
+    // if (TEMP_FAILURE_RETRY(close((*head)->clientSocket)) < 0)
+    if (close((*head)->clientSocket) < 0)
+      ERR("close");
+    free(*head);
+    *head = next;
+  }
 }
