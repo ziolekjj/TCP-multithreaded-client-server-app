@@ -42,20 +42,20 @@ void *thread_work(void *args) {
 	pthread_detach(pthread_self());
 	int n;
 	thread_arg *workerArgs = (thread_arg*)args;
+	client_t *client = block_pop_client(workerArgs->server_data->clients, workerArgs->server_data->timedMutex);
 	sigset_t oldmask;
 	set_thread_signals(&oldmask);
 	struct timespec ts;
 	clock_gettime(CLOCK_REALTIME, &ts);
 	ts.tv_sec += 4;
-		
+	
+	// OBSŁUGA LIMITU KLIENTÓW
 	pthread_mutex_lock(workerArgs->server_data->timedMutex);
 	while(workerArgs->server_data->connections >= 1) {
 		if ((n = pthread_cond_timedwait(workerArgs->server_data->cond, workerArgs->server_data->timedMutex, &ts)) != 0) {
 			if(n == ETIMEDOUT) {
-				printf("CHUJU ZLOTY NIE MA DLA CIEBIE MIEJSCA ELOO\n");
+				printf("Client limit...\n");
 				pthread_mutex_unlock(workerArgs->server_data->timedMutex);
-				client_t *client = block_pop_client(workerArgs->server_data->clients, workerArgs->server_data->timedMutex);
-				// bulk_write(client->clientSocket, "xD\n", 3);
 				printf("[%d] closing connection to the client\n", workerArgs->id);
 				// if (TEMP_FAILURE_RETRY(close(client->clientSocket)) < 0)
 				if (close(client->clientSocket) < 0)
@@ -67,23 +67,22 @@ void *thread_work(void *args) {
 			}
 		}
 	}
-	printf("Przeszedlem mutex.\n");
 	pthread_mutex_unlock(workerArgs->server_data->timedMutex);
 	workerArgs->server_data->connections++;
-	
-	printf("[%d] started\n", workerArgs->id);
+	// OBSŁUGA LIMITU KLIENTÓW
 
-	printf("connected clients: %d\n", workerArgs->server_data->connections);
-	for(;;);
+	printf("[SERVER] New client with id %d has been connected\n", workerArgs->id);
+	char buff[2];
+	bulk_read(client->clientSocket, buff, 1);
+	printf("%s\n", buff);
 
-
-	client_t *client = block_pop_client(workerArgs->server_data->clients, workerArgs->server_data->timedMutex);
+	// ZAMYKANIE POŁĄCZENIA Z KLIENTEM
+	// client_t *client = block_pop_client(workerArgs->server_data->clients, workerArgs->server_data->timedMutex);
 	printf("[%d] closing connection to the client\n", workerArgs->id);
 	// if (TEMP_FAILURE_RETRY(close(client->clientSocket)) < 0)
 	if (close(client->clientSocket) < 0)
 		ERR("close");
 	free(client);
-
 	int threadId = workerArgs->id;
 	end_thread(workerArgs, &oldmask);
 	pthread_mutex_lock(workerArgs->server_data->timedMutex);
@@ -95,7 +94,7 @@ void *thread_work(void *args) {
 }
 
 
-void acceptNewClient(struct server_data *server_data, int threadId) {
+void accept_new_client(struct server_data *server_data, int threadId) {
 	printf("[SERVER] new client is trying to connect\n");
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(struct sockaddr_in);
@@ -132,7 +131,7 @@ void server_work(struct server_data *server_data) {
 			if (errno == EINTR) continue;
 			ERR("pselect");	
 		}
-		acceptNewClient(server_data, nextThreadId++);
+		accept_new_client(server_data, nextThreadId++);
 	}
 }
 
