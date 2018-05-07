@@ -49,12 +49,13 @@ void *thread_work(void *args) {
 	ts.tv_sec += 4;
 		
 	pthread_mutex_lock(workerArgs->server_data->timedMutex);
-	while(workerArgs->server_data->connections >= 5) {
+	while(workerArgs->server_data->connections >= 1) {
 		if ((n = pthread_cond_timedwait(workerArgs->server_data->cond, workerArgs->server_data->timedMutex, &ts)) != 0) {
 			if(n == ETIMEDOUT) {
 				printf("CHUJU ZLOTY NIE MA DLA CIEBIE MIEJSCA ELOO\n");
 				pthread_mutex_unlock(workerArgs->server_data->timedMutex);
 				client_t *client = block_pop_client(workerArgs->server_data->clients, workerArgs->server_data->timedMutex);
+				// bulk_write(client->clientSocket, "xD\n", 3);
 				printf("[%d] closing connection to the client\n", workerArgs->id);
 				// if (TEMP_FAILURE_RETRY(close(client->clientSocket)) < 0)
 				if (close(client->clientSocket) < 0)
