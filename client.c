@@ -17,6 +17,21 @@
 #define ERR(source) (fprintf(stderr, "%s:%d\n", __FILE__, __LINE__), \
   perror(source), exit(EXIT_FAILURE) )
 
+volatile sig_atomic_t last_signal=0 ;
+
+void sigalrm_handler(int sig) {
+  last_signal=sig;
+}
+
+int sethandler( void (*f)(int), int sigNo) {
+  struct sigaction act;
+  memset(&act, 0, sizeof(struct sigaction));
+  act.sa_handler = f;
+  if (-1==sigaction(sigNo, &act, NULL))
+    return -1;
+  return 0;
+}
+
 void usage(char *fileName) {
   fprintf(stderr, "Usage: %s hostname port\n", fileName);
   exit(EXIT_FAILURE);
@@ -72,11 +87,15 @@ int connect_tcp_socket(char *name, char *port) {
 int main(int argc, char **argv) {
   char *server, *port;
   parse_client_arguments(argc, argv, &server, &port);
+  if(sethandler(sigalrm_handler,SIGALRM)) ERR("Seting SIGALRM:");
 
   printf("Connecting to %s on port %s\n", server, port);
   int socketDes = connect_tcp_socket(server, port);
   printf("Connected\n");
-
+  alarm(2);
+  while(1){
+    if(SIGALRM==last_signal) break;
+  }
 
   printf("Closing connection\n");
   if (close(socketDes) < 0)
